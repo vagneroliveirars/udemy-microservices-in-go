@@ -31,3 +31,6 @@ brokerApp
 
 # frontend binary
 frontApp
+
+# db data
+project/db-data
