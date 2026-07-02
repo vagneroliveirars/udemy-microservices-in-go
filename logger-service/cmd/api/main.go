@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"logger-service/data"
 
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -16,7 +17,7 @@ const {
 var client *mongo.Client
 
 type Config struct {
-
+	Models data.Models
 }
 
 func main() {
@@ -37,6 +38,27 @@ func main() {
 			panic(err)
 		}
 	} ()
+
+	app := Config{
+		Models: data.New(client),
+	}
+
+	// start web server
+	go app.serve()
+}
+
+func (app *Config) serve() {
+	log.Println("Starting broker service on port", webPort)
+
+	srv := &http.Server{
+		Addr:    ":" + webPort,
+		Handler: app.routes(),
+	}
+
+	err := srv.ListenAndServe()
+	if err != nil {
+		log.Panic(err)
+	}
 }
 
 func connectToMongoDB() (*mongo.Client, error) {
