@@ -1,18 +1,22 @@
 package main
 
 import (
+	"context"
 	"log"
 	"logger-service/data"
+	"net/http"
+	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-const {
-	webPort = "80"
-	rpcPort = "5001"
+const (
+	webPort  = "80"
+	rpcPort  = "5001"
 	mongoURL = "mongodb://mongo:27017"
 	gRpcPort = "50001"
-}
+)
 
 var client *mongo.Client
 
@@ -37,25 +41,20 @@ func main() {
 		if err := client.Disconnect(ctx); err != nil {
 			panic(err)
 		}
-	} ()
+	}()
 
 	app := Config{
 		Models: data.New(client),
 	}
 
-	// start web server
-	go app.serve()
-}
-
-func (app *Config) serve() {
-	log.Println("Starting broker service on port", webPort)
+	log.Println("Starting logger service on port", webPort)
 
 	srv := &http.Server{
 		Addr:    ":" + webPort,
 		Handler: app.routes(),
 	}
 
-	err := srv.ListenAndServe()
+	err = srv.ListenAndServe()
 	if err != nil {
 		log.Panic(err)
 	}
@@ -63,11 +62,12 @@ func (app *Config) serve() {
 
 func connectToMongoDB() (*mongo.Client, error) {
 	// Create connection options
-	clientOptions := options.Client().ApplyURI(mongoURL)
-	clientOptions.setAuth(options.Credential{
-		Username: "admin",
-		Password: "password"
-	})
+	clientOptions := options.Client().
+		ApplyURI(mongoURL).
+		SetAuth(options.Credential{
+			Username: "admin",
+			Password: "password",
+		})
 
 	// Connect to MongoDB
 	c, err := mongo.Connect(context.TODO(), clientOptions)
@@ -75,6 +75,8 @@ func connectToMongoDB() (*mongo.Client, error) {
 		log.Println("Failed to connect to MongoDB:", err)
 		return nil, err
 	}
+
+	log.Println("Connected to MongoDB!")
 
 	return c, nil
 }
